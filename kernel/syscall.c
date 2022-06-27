@@ -104,8 +104,8 @@ extern uint64 sys_unlink(void);
 extern uint64 sys_wait(void);
 extern uint64 sys_write(void);
 extern uint64 sys_uptime(void);
-extern int sys_symlink(void); // changed
-extern int sys_readlink(void); // changed
+extern uint64 sys_symlink(void); 
+extern uint64 sys_readlink(void);
 
 
 static uint64 (*syscalls[])(void) = {
@@ -130,8 +130,8 @@ static uint64 (*syscalls[])(void) = {
 [SYS_link]    sys_link,
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
-[SYS_symlink] sys_symlink, //changed
-[SYS_readlink] sys_readlink, //changed
+[SYS_symlink] sys_symlink, 
+[SYS_readlink] sys_readlink, 
 };
 
 void
