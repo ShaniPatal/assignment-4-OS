@@ -133,8 +133,6 @@ UPROGS=\
 	$U/_wc\
 	$U/_zombie\
 	$U/_sanitytest\
-	# $U/_sanity_test\
-	# $U/_symlink_test\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)
