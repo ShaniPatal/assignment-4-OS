@@ -11,7 +11,6 @@ fmtname(char *path)
   char *p;
   char *arrow = "->";
   char symbuf[DIRSIZ];
-  char *arrow = "->";
   int value = readlink(path, symbuf, DIRSIZ);
   
   // Find first character after last slash.

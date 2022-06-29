@@ -9,23 +9,23 @@
 #include "kernel/riscv.h"
 
 /* Sanity test for task 1*/
-// void
-// t1Test(void){
-//    int fd;
-//     char data[1024];
+void
+t1Test(void){
+   int fd;
+    char data[1024];
 
-//     // fills the data array with 7s
-//     memset(data, 7, 1024);
-//     fd = open("sanity_file", O_CREATE | O_RDWR);
-//     for(int i = 0; i < 1024*10; i++){
-//         write(fd, data, sizeof(data));
-//         if (i == 11)
-//             printf("Finished writing 12KB (direct)\n");
-//         if (i == 267)
-//             printf("Finished writing 268KB (single direct)\n");
-//     }
-//     printf("Finished writing 10MB\ntest finished\n");
-// }
+    // fills the data array with 7s
+    memset(data, 7, 1024);
+    fd = open("sanity_file", O_CREATE | O_RDWR);
+    for(int i = 0; i < 1024*10; i++){
+        write(fd, data, sizeof(data));
+        if (i == 11)
+            printf("Finished writing 12KB (direct)\n");
+        if (i == 267)
+            printf("Finished writing 268KB (single direct)\n");
+    }
+    printf("Finished writing 10MB\ntest finished\n");
+}
 
 void
 task3_test(void){
@@ -33,8 +33,8 @@ task3_test(void){
     char data[1024];
 
     // fills the data array with 7s
-    fd = open("sanity_3", O_CREATE | O_RDWR);
-    write(fd, "data", sizeof(data));
+    fd = open("sanity", O_CREATE | O_RDWR);
+    write(fd, "banana", sizeof(data));
 }
 
 int main(int argc, char* argv[]){
