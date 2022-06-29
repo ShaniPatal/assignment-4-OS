@@ -9,40 +9,29 @@ fmtname(char *path)
 {
   static char buf[DIRSIZ+1];
   char *p;
-  char buffie[DIRSIZ];
-  int read_link_ret = readlink(path, buf, DIRSIZ);
-  // printf("%d", read_link_ret);
-
+  char *arrow = "->";
+  char symbuf[DIRSIZ];
+  char *arrow = "->";
+  int value = readlink(path, symbuf, DIRSIZ);
+  
   // Find first character after last slash.
   for(p=path+strlen(path); p >= path && *p != '/'; p--)
     ;
   p++;
-
   // Return blank-padded name.
   if(strlen(p) >= DIRSIZ)
     return p;
   memmove(buf, p, strlen(p));
-  
-  int symname = strlen(p);
-  if(read_link_ret == 0){//if the path is to a symlink
-  // printf("27");
-    memmove(buf + symname, "->", 2);
-      // printf("28");
 
-    symname+=2;
-      // printf("29");
-
-    memmove(buf + symname, buffie, strlen(buffie));
-      // printf("30");
-
-    symname+=strlen(buffie);
-      // printf("31");
-
+  int lp = strlen(p);
+  if (value == 0){
+    memmove(buf + lp, arrow, 2);
+    lp += 2;
+    memmove(buf + lp, symbuf, strlen(symbuf));
+    lp += strlen(symbuf);
   }
 
-  memset(buf+strlen(p), ' ', DIRSIZ-strlen(p));
-    // printf("32");
-
+  memset(buf+lp, ' ', DIRSIZ-lp);  
   return buf;
 }
 
@@ -57,8 +46,6 @@ ls(char *path)
 
   if((fd = open(path, 0)) < 0){
     fprintf(2, "ls: cannot open %s\n", path);
-    printf("AAAAAAAAAAAAA\n");
-
     return;
   }
 

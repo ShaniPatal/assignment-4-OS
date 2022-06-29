@@ -638,56 +638,29 @@ uint64
 sys_symlink(void)
 {
     char oldpath[MAXPATH], newpath[MAXPATH];
-    struct inode *ip, *dp;
-    char dir[DIRSIZ];
-    uint poff;
-
-
+    struct inode *ip;
     if (argstr(0, oldpath, MAXPATH) < 0 || argstr(1, newpath, MAXPATH) < 0)
         return -1;
 
     begin_op();
-
-    if((dp = nameiparent(newpath, dir)) == 0){  //parent inode
-        end_op();
-        return -1;
-    }
-    ilock(dp);
-
-    if((ip = dirlookup(dp, dir, &poff)) != 0){ //check if exists in folder
-        iunlock(dp);
-        end_op();
-        return -1;
-    }
-    iunlock(dp);
 
     if((ip = create(newpath, T_SYMLINK, 0, 0)) == 0){
         end_op();
         return -1;
     }
 
-    if(writei(ip, 0, (uint64)oldpath, 0, strlen(oldpath) + 1) != strlen(oldpath) + 1)
-        return -1;
-
-    iunlockput(ip);
-    end_op();
-    return 0;
+    int pathlength = strlen(oldpath);
+  writei(ip, 0, (uint64)&pathlength, 0, sizeof(int));
+  writei(ip, 0, (uint64)oldpath, sizeof(int), pathlength + 1);
+  iupdate(ip);
+  iunlockput(ip);
+  end_op();
+  return 0;
 }
 
 
-
-uint64 sys_readlink(void)
-{
-  char pathname[MAXPATH];
-  uint64 buf;
-  int bufsize;
-  if (argstr(0, pathname, MAXPATH) < 0 || argaddr(1, &buf) < 0 || argint(2, &bufsize) < 0)
-    return -1;
-  else
-    return readlink(pathname, (char *)buf, bufsize);
-}
-
-int readlink(char *pathname, char *buf, int bufsize)
+int
+preadlink(char *pathname, char *buf, int bufsize)
 {
   struct inode *ip; 
   // struct proc* p = myproc();
@@ -695,6 +668,7 @@ int readlink(char *pathname, char *buf, int bufsize)
  
   if((ip = namei(pathname)) == 0){
     //if path not exists
+    printf("namei error\n");
     end_op();
     return -1;
   }
@@ -702,80 +676,8 @@ int readlink(char *pathname, char *buf, int bufsize)
   //if path exists
   ilock(ip);
 
-  if (ip->type != T_SYMLINK)
-  {
+  if (ip->type != T_SYMLINK){
     iunlock(ip);
-    end_op();
-    return -1;
-  }
-
-  if(readi(ip, 0, (uint64)buf, 0, bufsize) < 0){     //modify &buf
-    iunlock(ip);
-    end_op();
-    return -1;
-  }
-
-// if(copyout(p->pagetable,buf, bufsize) < 0)
-//   {
-//     iunlock(ip);
-//     end_op();
-//     return -1;
-//   }
-  iunlock(ip);
-  return 0;
-}
-
-// uint64
-// sys_readlink(void)
-// {
-//     char pathname[MAXPATH];
-//     uint64 addr;
-//     int bufsize;
-//     if (argstr(0, pathname, MAXPATH) < 0  || argaddr(1, &addr) < 0 || argint(2, &bufsize) < 0)
-//         return -1; //could not fill the args
-
-//     return readlink(pathname, addr, bufsize);
-// }
-
-// int readlink(char* pathname, uint64 addr, int bufsize){
-//     struct inode *ip;
-//     char buffer[bufsize];
-//     struct proc* p = myproc();
-//     begin_op();
-//     if ((ip = namei(pathname)) == 0) { //check if path exists
-//         end_op();
-//         return -1;
-//     }
-//     ilock(ip);
-
-//     if (ip->type != T_SYMLINK)  //checks if symlink
-//         goto err;
-
-//     if(ip->size > bufsize) //check for short path
-//         goto err;
-
-//     if(readi(ip, 0, (uint64)buffer, 0, bufsize) < 0)
-//         goto err;
-
-//     if(copyout(p->pagetable, addr, buffer, bufsize) < 0)
-//         goto err;
-
-//     iunlock(ip);
-//     end_op();
-//     return 0;
-
-//     err:
-//         iunlock(ip);
-//         end_op();
-//         return -1;
-// }
-
-int readlinkwithinode(struct inode *ip, char *buf, int bufsize)
-{ 
-
-  if (ip->type != T_SYMLINK)
-  {
-    iunlockput(ip);
     end_op();
     return -1;
   }
@@ -785,43 +687,83 @@ int readlinkwithinode(struct inode *ip, char *buf, int bufsize)
     end_op();
     return -1;
   }
-  if(readi(ip, 0, (uint64)buf, sizeof(int), pathsize + 1) < 0){     //modify &buf
+  if(readi(ip, 1, (uint64)buf, sizeof(int), pathsize + 1) < 0){     //modify &buf
     iunlockput(ip);
     end_op();
     return -1;
   }
-      printf("buf isBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB: %s\n", buf);
-
+  iunlock(ip);
+  end_op();
   return 0;
 }
+
+
+
+int sys_readlink(void)
+{
+  char pathname[MAXPATH];
+  uint64 buf;
+  int bufsize;
+  if (argstr(0, pathname, MAXPATH) < 0 || argaddr(1, &buf) < 0 || argint(2, &bufsize) < 0)
+    return -1;
+  else
+    return preadlink(pathname, (char *)buf, bufsize);
+}
+
+
+
+// int readlinkwithinode(struct inode *ip, char *buf, int bufsize)
+// { 
+
+//   if (ip->type != T_SYMLINK)
+//   {
+//     iunlockput(ip);
+//     end_op();
+//     return -1;
+//   }
+//   int pathsize;
+//   if(readi(ip, 0, (uint64)&pathsize, 0, sizeof(int)) < 0){     //modify &buf
+//     iunlockput(ip);
+//     end_op();
+//     return -1;
+//   }
+//   if(readi(ip, 0, (uint64)buf, sizeof(int), pathsize + 1) < 0){     //modify &buf
+//     iunlockput(ip);
+//     end_op();
+//     return -1;
+//   }
+
+//   return 0;
+// }
 
 struct inode* dereference(struct inode* ip, char* buf){
     int counter = MAX_DEREFERENCE;
     struct inode* curr = ip;
     while(curr->type == T_SYMLINK){
-        counter -= 1;
-        if(counter == 0){
-          iunlock(curr);
-          return 0;
-        }
-    int i = readlinkwithinode(curr, buf, curr->size +1);
-    printf("buf isAAAAAAAAAAAAAAAAAAAAAAAAAAA: %s\n", buf);
-    if( i < 0){
-      iunlock(curr);
-      printf("derefernc: after 700");
-      return 0;
-    }
-
-    iunlock(curr);
-    curr = namei(buf);
-    if (curr == 0){
-      printf("curr is 0\n");
+      counter -= 1;
+      if(counter == 0){
+        iunlock(curr);
         return 0;
+      }
+      int pathsize;
+      if(readi(curr, 0, (uint64)&pathsize, 0, sizeof(int)) < 0){     //modify &buf
+        iunlockput(curr);
+        end_op();
+        return 0;
+      }
+      if(readi(curr, 0, (uint64)buf, sizeof(int), pathsize + 1) < 0){     //modify &buf
+        iunlockput(curr);
+        end_op();
+        return 0;
+      }
+      iunlock(curr);
+      if ((curr = namei(buf)) == 0){
+        iunlockput(curr);
+        end_op();
+        return 0;
+      }
+      ilock(curr);
     }
-
-    ilock(curr);
-    }
-
     return curr;
 }
 
